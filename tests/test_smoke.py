@@ -42,7 +42,7 @@ def test_query_builds_body_and_normalises_chunks():
 
     sent = json.loads(responses.calls[0].request.body)
     assert sent["tenant_id"] == "test_beam"
-    assert sent["kind"] == "memory"
+    assert sent["type"] == "memory"
     assert sent["max_results"] == 3
 
 
