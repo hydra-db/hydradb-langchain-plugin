@@ -2,6 +2,7 @@
 
 import json
 
+import pytest
 import responses
 
 from langchain_hydradb import HydraDBClient, HydraDBRetriever
@@ -13,8 +14,13 @@ def _client():
     return HydraDBClient(api_key="test-key", tenant_id="test_beam", sub_tenant_id="")
 
 
+@pytest.mark.parametrize(
+    ("kind", "expected_type"),
+    [(None, "memory"), ("memory", "memory"), ("knowledge", "knowledge")],
+    ids=["default", "memory", "knowledge"],
+)
 @responses.activate
-def test_query_builds_body_and_normalises_chunks():
+def test_query_builds_body_and_normalises_chunks(kind, expected_type):
     responses.add(
         responses.POST,
         f"{BASE}/query",
@@ -34,7 +40,8 @@ def test_query_builds_body_and_normalises_chunks():
         },
         status=200,
     )
-    chunks = _client().query("deploy?", kind="memory", max_results=3)
+    query_options = {"kind": kind} if kind is not None else {}
+    chunks = _client().query("deploy?", max_results=3, **query_options)
     assert len(chunks) == 1
     assert chunks[0].text == "we deploy on Fridays"
     assert chunks[0].id == "c1"
@@ -42,7 +49,8 @@ def test_query_builds_body_and_normalises_chunks():
 
     sent = json.loads(responses.calls[0].request.body)
     assert sent["tenant_id"] == "test_beam"
-    assert sent["type"] == "memory"
+    assert sent["type"] == expected_type
+    assert "kind" not in sent
     assert sent["max_results"] == 3
 
 
