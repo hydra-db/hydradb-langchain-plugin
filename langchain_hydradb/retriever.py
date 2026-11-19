@@ -37,6 +37,8 @@ class HydraDBRetriever(BaseRetriever):
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> list[Document]:
         kinds = ["memory", "knowledge"] if self.kind == "both" else [self.kind]
+        if self.client.layout == "unified":
+            kinds = [self.kind]
         docs: list[Document] = []
         for kind in kinds:
             chunks = self.client.query(
@@ -53,6 +55,13 @@ class HydraDBRetriever(BaseRetriever):
                     "id": chunk.id,
                     **chunk.metadata,
                 }
+                if chunk.context_id:
+                    metadata = {
+                        "id": chunk.id,
+                        "context_id": chunk.context_id,
+                        "enrichment": chunk.enrichment,
+                        "received_at": chunk.received_at,
+                    }
                 if chunk.score is not None:
                     metadata["score"] = chunk.score
                 docs.append(Document(page_content=chunk.text, metadata=metadata))

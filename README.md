@@ -62,6 +62,29 @@ chain_with_memory = RunnableWithMessageHistory(
 - Ingestion is asynchronous; recall a source only after it finishes indexing.
 - The client depends only on `requests`; no HydraDB SDK required.
 
+## Unified rollout preparation
+
+Unified support is not enabled in production. Keep the default split layout
+until your database's production rollout is confirmed. Then construct the client
+with `HydraDBClient(..., layout="unified")`. Only `split` and `unified` are
+accepted; there is no layout discovery or cross-layout retry.
+
+Unified writes use JSON `context[]`. Text-item `id` maps to `context_id`,
+`infer` to `enrich`, `metadata` to `attributes`, and `additional_metadata`
+to `custom_attributes`. Conversations use `{role, content}` turns. The raw
+`add_knowledge` adapter supports text-only items with those fields and `title`;
+unsupported fields are rejected rather than dropped. Split writes and history
+behavior remain unchanged.
+
+`query()` keeps its chunk-list return value. `query_result()` additionally
+retains complete response `.data` and envelope `.meta`, including root
+`graph[]`, `forceful_relations[]`, `llm_prompt`, and `tabular_data`.
+Unified chunk IDs remain `.id`; separate `.context_id`, `.enrichment` and
+`.received_at` are exposed on chunks and retriever document metadata.
+Source titles and source metadata are not invented. The unified retriever
+queries once even with `kind="both"`; split still queries both corpora.
+History continues to return recalled text as messages, not a verbatim transcript.
+
 ## Test
 
 ```bash
